@@ -25,8 +25,8 @@ describe("activityByMonth", () => {
 describe("wordCloud", () => {
   it("surfaces recurring terms, drops stopwords, normalizes weights", () => {
     const cloud = wordCloud(items);
-    expect(cloud[0].term).toBe("fedora");
-    expect(cloud[0].weight).toBe(1);
+    expect(cloud[0]!.term).toBe("fedora");
+    expect(cloud[0]!.weight).toBe(1);
     expect(cloud.find((t) => t.term === "and")).toBeUndefined();
     expect(cloud.find((t) => t.term === "is")).toBeUndefined();
   });

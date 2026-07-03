@@ -6,8 +6,8 @@ function ModeToggle() {
   const [mode, setMode] = useState(() => localStorage.getItem("pl.mode") ?? "auto");
 
   useEffect(() => {
-    if (mode === "auto") delete document.documentElement.dataset.mode;
-    else document.documentElement.dataset.mode = mode;
+    if (mode === "auto") delete document.documentElement.dataset["mode"];
+    else document.documentElement.dataset["mode"] = mode;
     localStorage.setItem("pl.mode", mode);
   }, [mode]);
 

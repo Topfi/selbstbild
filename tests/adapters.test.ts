@@ -12,7 +12,7 @@ function mockFetchSequence(responses: Array<{ url?: RegExp; body: unknown; statu
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
-      const r = responses[Math.min(call++, responses.length - 1)];
+      const r = responses[Math.min(call++, responses.length - 1)]!;
       if (r.url) expect(String(url)).toMatch(r.url);
       return new Response(JSON.stringify(r.body), { status: r.status ?? 200 });
     }),
@@ -44,11 +44,11 @@ describe("hnAdapter", () => {
     ]);
     const items = await hnAdapter.fetchHistory("alice", opts());
     expect(items.map((i) => i.id)).toEqual(["1", "2", "3"]);
-    expect(items[1].text).toContain("Second &");
-    expect(items[1].text).toContain("with para");
-    expect(items[1].text).not.toContain("<p>");
-    expect(items[0].text).toBe("First italic");
-    expect(items[2].kind).toBe("post");
+    expect(items[1]!.text).toContain("Second &");
+    expect(items[1]!.text).toContain("with para");
+    expect(items[1]!.text).not.toContain("<p>");
+    expect(items[0]!.text).toBe("First italic");
+    expect(items[2]!.kind).toBe("post");
   });
 
   it("throws PlatformError for empty user", async () => {
@@ -89,9 +89,9 @@ describe("blueskyAdapter", () => {
     ]);
     const items = await blueskyAdapter.fetchHistory("alice.bsky.social", opts());
     expect(items).toHaveLength(2);
-    expect(items[0].kind).toBe("post");
-    expect(items[1].kind).toBe("comment");
-    expect(items[0].url).toContain("/post/aaa");
+    expect(items[0]!.kind).toBe("post");
+    expect(items[1]!.kind).toBe("comment");
+    expect(items[0]!.url).toContain("/post/aaa");
   });
 });
 
@@ -114,7 +114,7 @@ describe("mastodonAdapter", () => {
     ]);
     const items = await mastodonAdapter.fetchHistory("Gargron@mastodon.social", opts());
     expect(items).toHaveLength(1);
-    expect(items[0].text).toBe("Hello world");
+    expect(items[0]!.text).toBe("Hello world");
   });
 
   it("surfaces auth-restricted instances with a hint", async () => {

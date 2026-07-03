@@ -9,7 +9,7 @@ export function repairJson(raw: string): unknown | null {
 
   // Strip code fences: ```json ... ```
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence) attempts.push(fence[1].trim());
+  if (fence?.[1] !== undefined) attempts.push(fence[1].trim());
 
   // Extract the outermost {...} or [...] span.
   const first = raw.search(/[{[]/);

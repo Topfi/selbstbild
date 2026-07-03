@@ -21,7 +21,7 @@ export const mastodonAdapter: PlatformAdapter = {
   },
 
   async fetchHistory(handle, opts) {
-    const [user, instance] = handle.split("@");
+    const [user = "", instance = ""] = handle.split("@");
     const base = `https://${instance}/api/v1`;
     let account: any;
     try {

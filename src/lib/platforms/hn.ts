@@ -69,7 +69,7 @@ async function fetchTagged(
       );
     }
     opts.onProgress(runningTotal() + items.length, false);
-    before = hits[hits.length - 1].created_at_i;
+    before = hits[hits.length - 1]!.created_at_i;
     if (items.length >= opts.maxItems) break;
     // Be polite to Algolia (~3 req/s is plenty).
     await new Promise((r) => setTimeout(r, 350));

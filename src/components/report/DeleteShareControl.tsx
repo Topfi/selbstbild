@@ -10,7 +10,7 @@ export default function DeleteShareControl() {
   const [msg, setMsg] = useState("");
 
   if (!shareUrl) return null;
-  const slug = shareUrl.split("/s/")[1];
+  const slug = shareUrl.split("/s/")[1] ?? "";
 
   const onDelete = async () => {
     const token = getDeletionToken(slug) ?? useStore.getState().shareDeletionToken;

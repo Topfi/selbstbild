@@ -6,10 +6,10 @@ export interface RawItem {
   text: string;
   /** epoch milliseconds */
   createdAt: number;
-  url?: string;
+  url?: string | undefined;
   /** parent story title / subreddit / thread hint */
-  context?: string;
-  score?: number;
+  context?: string | undefined;
+  score?: number | undefined;
 }
 
 export interface FetchOptions {
@@ -36,7 +36,7 @@ export interface PlatformAdapter {
 export class PlatformError extends Error {
   constructor(
     message: string,
-    public readonly hint?: string,
+    public readonly hint?: string | undefined,
   ) {
     super(message);
     this.name = "PlatformError";

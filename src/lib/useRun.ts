@@ -17,7 +17,9 @@ export function makeProvider(id: ProviderId): LLMProvider {
 
 /** Default model roles per depth. */
 export function defaultModels(providerId: ProviderId, depth: Depth, available: ModelInfo[]): { reader: ModelInfo; analyst: ModelInfo; synthesis: ModelInfo } {
-  const find = (id: string, fallback?: ModelInfo) => available.find((m) => m.id === id) ?? fallback ?? available[0];
+  const first = available[0];
+  if (!first) throw new Error("The provider returned no models — check your key.");
+  const find = (id: string, fallback?: ModelInfo): ModelInfo => available.find((m) => m.id === id) ?? fallback ?? first;
   if (providerId === "anthropic") {
     const haiku = find("claude-haiku-4-5");
     const sonnet = find("claude-sonnet-5", haiku);
@@ -34,7 +36,7 @@ export function defaultModels(providerId: ProviderId, depth: Depth, available: M
   // expensive frontier model).
   const priced = available.filter((m) => (m.outPerMtok ?? 0) > 0 && m.ctxWindow >= 100_000);
   const cheapestPriced = [...priced].sort((a, b) => (a.outPerMtok ?? 99) - (b.outPerMtok ?? 99))[0];
-  const resolve = (patterns: RegExp[], fallback: ModelInfo) => {
+  const resolve = (patterns: RegExp[], fallback: ModelInfo): ModelInfo => {
     for (const p of patterns) {
       const hit = priced.find((m) => p.test(m.id));
       if (hit) return hit;
@@ -43,7 +45,7 @@ export function defaultModels(providerId: ProviderId, depth: Depth, available: M
   };
   const cheap = resolve(
     [/^anthropic\/claude-haiku-4\.5$/, /claude.*haiku(?!.*3)/, /gemini.*flash/, /haiku/],
-    cheapestPriced ?? available[0],
+    cheapestPriced ?? first,
   );
   const strong = resolve(
     [/^anthropic\/claude-sonnet-5$/, /claude-sonnet-5/, /claude.*sonnet-4\.6/, /claude.*sonnet/, /gpt-5/],

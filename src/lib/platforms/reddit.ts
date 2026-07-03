@@ -12,8 +12,8 @@ import { fetchJson, PlatformError } from "./types";
  * installed apps). Configure them here or via VITE_REDDIT_CLIENT_ID*.
  */
 const CLIENT_IDS: Record<string, string> = {
-  localhost: import.meta.env.VITE_REDDIT_CLIENT_ID_DEV ?? "",
-  default: import.meta.env.VITE_REDDIT_CLIENT_ID ?? "",
+  localhost: import.meta.env["VITE_REDDIT_CLIENT_ID_DEV"] ?? "",
+  default: import.meta.env["VITE_REDDIT_CLIENT_ID"] ?? "",
 };
 
 const TOKEN_KEY = "pl.reddit.token";
@@ -21,7 +21,7 @@ const STATE_KEY = "pl.reddit.state";
 
 function clientId(): string {
   const host = location.hostname;
-  return (host === "localhost" || host === "127.0.0.1" ? CLIENT_IDS.localhost : CLIENT_IDS.default) || "";
+  return (host === "localhost" || host === "127.0.0.1" ? CLIENT_IDS["localhost"] : CLIENT_IDS["default"]) || "";
 }
 
 function redirectUri(): string {

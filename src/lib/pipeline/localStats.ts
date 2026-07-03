@@ -15,7 +15,7 @@ export function activityByMonth(items: RawItem[]): { month: string; count: numbe
   if (!min) return [];
   // Fill gaps so the chart shows quiet months as zero.
   const out: { month: string; count: number }[] = [];
-  let [y, m] = min.split("-").map(Number);
+  let [y = 0, m = 1] = min.split("-").map(Number);
   for (;;) {
     const month = `${y}-${String(m).padStart(2, "0")}`;
     out.push({ month, count: counts.get(month) ?? 0 });
@@ -82,5 +82,5 @@ export function dateRange(items: RawItem[]): { from: string; to: string } {
   if (items.length === 0) return { from: "", to: "" };
   const sorted = [...items].sort((a, b) => a.createdAt - b.createdAt);
   const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-  return { from: iso(sorted[0].createdAt), to: iso(sorted[sorted.length - 1].createdAt) };
+  return { from: iso(sorted[0]!.createdAt), to: iso(sorted[sorted.length - 1]!.createdAt) };
 }

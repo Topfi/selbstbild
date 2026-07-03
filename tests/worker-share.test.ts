@@ -46,7 +46,7 @@ describe("share worker logic", () => {
   it("rejects oversized payloads", async () => {
     const env = fakeEnv();
     const doc = structuredClone(golden) as any;
-    doc.essay.sections[0].markdown = "x".repeat(300_000);
+    doc.essay.sections[0]!.markdown = "x".repeat(300_000);
     expect((await createShare(env, JSON.stringify(doc))).status).toBe(413);
   });
 

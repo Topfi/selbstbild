@@ -19,15 +19,15 @@ describe("chunkItems", () => {
     const items = Array.from({ length: 20 }, (_, i) => item(i, "x".repeat(400)));
     const chunks = chunkItems(items, 300);
     for (let i = 1; i < chunks.length; i++) {
-      expect(chunks[i].dateFrom >= chunks[i - 1].dateTo).toBe(true);
+      expect(chunks[i]!.dateFrom >= chunks[i - 1]!.dateTo).toBe(true);
     }
-    expect(chunks[0].dateFrom).toBe("2024-01-01");
+    expect(chunks[0]!.dateFrom).toBe("2024-01-01");
   });
 
   it("truncates a single oversized item into its own chunk", () => {
     const chunks = chunkItems([item(0, "y".repeat(100_000))], 1000);
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].estTokens).toBeLessThanOrEqual(1000);
+    expect(chunks[0]!.estTokens).toBeLessThanOrEqual(1000);
   });
 
   it("handles empty input", () => {

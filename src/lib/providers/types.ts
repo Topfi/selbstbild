@@ -3,23 +3,23 @@ export interface ModelInfo {
   label: string;
   ctxWindow: number;
   /** USD per million input tokens; undefined = unknown */
-  inPerMtok?: number;
-  outPerMtok?: number;
+  inPerMtok?: number | undefined;
+  outPerMtok?: number | undefined;
 }
 
 export interface CompletionRequest {
   system: string;
   user: string;
   /** When set, the model must return JSON matching this schema. */
-  jsonSchema?: { name: string; schema: Record<string, unknown> };
+  jsonSchema?: { name: string; schema: Record<string, unknown> } | undefined;
   maxTokens: number;
-  onDelta?: (text: string) => void;
+  onDelta?: ((text: string) => void) | undefined;
   signal: AbortSignal;
 }
 
 export interface CompletionResult {
   text: string;
-  json?: unknown;
+  json?: unknown | undefined;
   usage: { inputTokens: number; outputTokens: number };
 }
 
@@ -30,14 +30,14 @@ export interface LLMProvider {
   keyHost: string;
   listModels(): Promise<ModelInfo[]>;
   complete(model: string, req: CompletionRequest): Promise<CompletionResult>;
-  validateKey(): Promise<{ ok: boolean; error?: string }>;
+  validateKey(): Promise<{ ok: boolean; error?: string | undefined }>;
 }
 
 export class ProviderError extends Error {
   constructor(
     message: string,
-    public readonly status?: number,
-    public readonly retryAfterMs?: number,
+    public readonly status?: number | undefined,
+    public readonly retryAfterMs?: number | undefined,
   ) {
     super(message);
     this.name = "ProviderError";

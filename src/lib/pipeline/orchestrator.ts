@@ -23,20 +23,20 @@ export interface PipelineConfig {
   depth: Depth;
   platform: PlatformId;
   username: string;
-  concurrency?: number;
-  targetChunkTokens?: number;
+  concurrency?: number | undefined;
+  targetChunkTokens?: number | undefined;
   signal: AbortSignal;
   onProgress: (p: PipelineProgress) => void;
 }
 
 export interface PipelineProgress {
   phase: "chunking" | "reading" | "analyzing" | "synthesizing" | "done";
-  chunksDone?: number;
-  chunksTotal?: number;
+  chunksDone?: number | undefined;
+  chunksTotal?: number | undefined;
   tokensIn: number;
   tokensOut: number;
-  costSoFar?: number;
-  streamPreview?: string;
+  costSoFar?: number | undefined;
+  streamPreview?: string | undefined;
 }
 
 const MAX_RETRIES = 4;
@@ -68,7 +68,7 @@ async function pool<T, R>(items: T[], limit: number, fn: (item: T, i: number) =>
       const i = next++;
       if (i >= items.length) return;
       try {
-        results[i] = await fn(items[i], i);
+        results[i] = await fn(items[i]!, i);
       } catch {
         results[i] = null; // skip failed chunk; reported via skippedChunks
       }
@@ -106,9 +106,10 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
     let corpus = "";
     let used = 0;
     for (let i = chunks.length - 1; i >= 0; i--) {
-      if (used + chunks[i].estTokens > budget) break;
-      corpus = chunks[i].text + "\n" + corpus;
-      used += chunks[i].estTokens;
+      const chunk = chunks[i]!;
+      if (used + chunk.estTokens > budget) break;
+      corpus = chunk.text + "\n" + corpus;
+      used += chunk.estTokens;
     }
     synthesisUser = quickSynthesisUser(cfg.platform, cfg.username, corpus);
   } else {

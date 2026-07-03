@@ -4,9 +4,9 @@ import type { Chunk } from "./chunker";
 import type { Depth } from "./prompts";
 
 export interface CostEstimate {
-  totalUsd?: number;
-  lowUsd?: number;
-  highUsd?: number;
+  totalUsd?: number | undefined;
+  lowUsd?: number | undefined;
+  highUsd?: number | undefined;
   inputTokens: number;
   outputTokens: number;
   llmCalls: number;
