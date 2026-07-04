@@ -2,6 +2,11 @@
   "name": "selbstbild",
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-01",
+  // Route (not custom_domain): the apex already has externally managed DNS
+  // records, which the custom-domain API refuses to replace. The route
+  // intercepts all proxied traffic for the hostname and hands it to the
+  // Worker, so the existing record stays but is never served.
+  "routes": [{ "pattern": "selbstbild.eu/*", "zone_name": "selbstbild.eu" }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
