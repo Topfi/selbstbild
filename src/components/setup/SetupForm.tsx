@@ -54,12 +54,14 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
   const [key, setKey] = useState("");
   const [persist, setPersist] = useState(false);
   const [keyStatus, setKeyStatus] = useState<"unchecked" | "checking" | "ok" | "bad">("unchecked");
+  const [editingKey, setEditingKey] = useState(false);
   const [keyError, setKeyError] = useState("");
 
   useEffect(() => {
     setKey(getApiKey(providerId));
     setPersist(getPersistPreference(providerId));
     setKeyStatus("unchecked");
+    setEditingKey(false);
   }, [providerId]);
 
   const saveKey = (value: string, persistNow = persist) => {
@@ -92,14 +94,46 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
               </button>
             ))}
           </div>
-          <input
-            type="password"
-            style={{ flex: "1 1 260px" }}
-            placeholder={PROVIDERS.find((p) => p.id === providerId)!.placeholder}
-            value={key}
-            onChange={(e) => saveKey(e.target.value)}
-            autoComplete="off"
-          />
+          {key.trim().length >= 12 && !editingKey ? (
+            <span
+              style={{
+                flex: "1 1 260px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                fontFamily: "var(--font-mono)",
+                fontSize: 13.5,
+                border: "2px solid var(--data)",
+                borderRadius: "var(--radius)",
+                background: "var(--field-bg)",
+                padding: "10px 12px",
+              }}
+            >
+              <span style={{ color: "var(--text-1)" }}>
+                {key.slice(0, 7)}
+                <span style={{ letterSpacing: 2 }}>••••••••</span>
+                <strong style={{ color: "var(--text-0)" }}>{key.slice(-4)}</strong>
+              </span>
+              <button
+                className="btn btn--ghost"
+                style={{ padding: "2px 8px", fontSize: 11 }}
+                onClick={() => setEditingKey(true)}
+              >
+                change
+              </button>
+            </span>
+          ) : (
+            <input
+              type="password"
+              style={{ flex: "1 1 260px" }}
+              placeholder={PROVIDERS.find((p) => p.id === providerId)!.placeholder}
+              value={key}
+              onChange={(e) => saveKey(e.target.value)}
+              onBlur={() => key.trim().length >= 12 && setEditingKey(false)}
+              autoFocus={editingKey}
+              autoComplete="off"
+            />
+          )}
           <button className="btn btn--ghost" onClick={checkKey} disabled={key.trim().length < 8 || keyStatus === "checking"}>
             {keyStatus === "checking" ? "checking…" : keyStatus === "ok" ? "✓ valid" : "test key"}
           </button>
@@ -135,6 +169,7 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
                 setKey("");
                 setPersist(false);
                 setKeyStatus("unchecked");
+                setEditingKey(true);
               }}
             >
               forget this key
