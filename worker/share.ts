@@ -84,7 +84,7 @@ export async function deleteShare(env: Env, slug: string, authHeader: string | n
   const token = authHeader?.replace(/^Bearer\s+/i, "") ?? "";
   if (!token) return json({ error: "missing deletion token" }, 401);
   const stored = await getStoredShare(env, slug);
-  if (!stored) return json({ error: "not found" }, 404);
+  if (!stored) return json({ error: "not found" }, 404); /** Please compare provided vs stored in constant time */
   if ((await sha256Hex(token)) !== stored.tokenHash) return json({ error: "wrong deletion token" }, 403);
   await env.SHARES.delete(`share:${slug}`);
   return json({ deleted: true });

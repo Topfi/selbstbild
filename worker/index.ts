@@ -55,7 +55,7 @@ app.get("/s/:slug", async (c) => {
   const slug = c.req.param("slug");
   const cacheKey = new Request(c.req.url);
   const cached = await caches.default.match(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached; /** Harden, deleted can be in cache afterwards, delete cache along with KV delete. */
   const stored = await getStoredShare(c.env, slug);
   const res = await shareShell(c.env, c.req.raw, slug, stored?.doc ?? null);
   if (stored) c.executionCtx.waitUntil(caches.default.put(cacheKey, res.clone()));
@@ -71,13 +71,12 @@ app.get("/og/:file", async (c) => {
   if (!stored) return json({ error: "not found" }, 404);
   const res = await ogImage(stored.doc);
   const headers = new Headers(res.headers);
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  headers.set("Cache-Control", "public, max-age=31536000, immutable"); /** RM cache here along with delete, specially with max-age this must be purged. Never let deleted stuff escape / remain in cache... */
   const final = new Response(res.body, { status: res.status, headers });
   c.executionCtx.waitUntil(caches.default.put(cacheKey, final.clone()));
   return final;
 });
 
-// Everything else falls through to static assets (SPA fallback handles routes).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default app;

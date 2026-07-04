@@ -29,7 +29,7 @@ export function anthropicProvider(apiKey: () => string): LLMProvider {
       try {
         await client().models.list();
         return { ok: true };
-      } catch (e: any) {
+      } catch (e: any) /** Consider unknown for this, maybe helpers */ {
         if (e?.status === 401) return { ok: false, error: "Invalid API key." };
         return { ok: false, error: e?.message ?? "Could not reach api.anthropic.com." };
       }
@@ -56,7 +56,7 @@ export function anthropicProvider(apiKey: () => string): LLMProvider {
                 ...params,
                 betas: ["server-side-fallback-2026-06-01"],
                 fallbacks: [{ model: "claude-opus-4-8" }],
-              } as any,
+              } as any, /** No any, SDK most certainly exposes types to use here. Define as narrowly as we can. */
               { signal: req.signal },
             )
           : client().messages.stream(params, { signal: req.signal });
@@ -68,7 +68,7 @@ export function anthropicProvider(apiKey: () => string): LLMProvider {
           );
         }
         // content is Message | BetaMessage depending on the stream path.
-        const blocks = message.content as Array<{ type: string; text?: string }>;
+        const blocks = message.content as Array<{ type: string; text?: string }>; /** Type guard this! */
         const text = blocks
           .filter((b) => b.type === "text")
           .map((b) => b.text ?? "")
@@ -84,7 +84,7 @@ export function anthropicProvider(apiKey: () => string): LLMProvider {
           // safety fallback this is the rescue model, not the requested one.
           servedBy: message.model,
         };
-      } catch (e: any) {
+      } catch (e: any) /** Here too, unknown / helpers */ {
         if (req.signal.aborted || e instanceof ProviderError) throw e;
         const retryAfter = Number(e?.headers?.get?.("retry-after"));
         throw new ProviderError(
