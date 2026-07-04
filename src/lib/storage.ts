@@ -29,6 +29,7 @@ export function getPersistPreference(providerId: string): boolean {
 export function clearApiKey(providerId: string): void {
   memoryKeys.delete(providerId);
   localStorage.removeItem(KEY_PREFIX + providerId);
+  localStorage.removeItem(PERSIST_PREFIX + providerId);
 }
 
 /** Deletion tokens for shares this browser created, so the user can delete later. */

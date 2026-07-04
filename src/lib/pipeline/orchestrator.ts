@@ -37,6 +37,7 @@ export interface PipelineProgress {
   tokensOut: number;
   costSoFar?: number | undefined;
   streamPreview?: string | undefined;
+  fallbackNotes?: string[] | undefined;
 }
 
 const MAX_RETRIES = 4;
@@ -85,13 +86,53 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
   let tokensOut = 0;
   let cost = 0;
 
-  const track = (model: ModelInfo, usage: { inputTokens: number; outputTokens: number }) => {
-    tokensIn += usage.inputTokens;
-    tokensOut += usage.outputTokens;
-    cost += costUsd(model, usage.inputTokens, usage.outputTokens) ?? 0;
+  // Per-role tally of which model actually served each call, so a
+  // server-side safety fallback (Fable 5 → Opus 4.8) is reported, not hidden.
+  const served: Record<"reader" | "analyst" | "synthesis", Map<string, number>> = {
+    reader: new Map(),
+    analyst: new Map(),
+    synthesis: new Map(),
   };
-  const progress = (p: Omit<PipelineProgress, "tokensIn" | "tokensOut" | "costSoFar">) =>
-    cfg.onProgress({ ...p, tokensIn, tokensOut, costSoFar: cost });
+  const fallbackNotes: string[] = [];
+
+  /** Same model family? Tolerates date-suffixed response ids and provider prefixes. */
+  const sameFamily = (requested: string, servedId: string) => {
+    const base = (s: string) => s.replace(/^[^/]+\//, "").replace(/-\d{8}$/, "");
+    const a = base(requested);
+    const b = base(servedId);
+    return a.startsWith(b) || b.startsWith(a);
+  };
+
+  const track = (
+    role: "reader" | "analyst" | "synthesis",
+    model: ModelInfo,
+    res: { usage: { inputTokens: number; outputTokens: number }; servedBy?: string | undefined },
+  ) => {
+    tokensIn += res.usage.inputTokens;
+    tokensOut += res.usage.outputTokens;
+    cost += costUsd(model, res.usage.inputTokens, res.usage.outputTokens) ?? 0;
+    const by = res.servedBy ?? model.id;
+    served[role].set(by, (served[role].get(by) ?? 0) + 1);
+    if (res.servedBy && !sameFamily(model.id, res.servedBy)) {
+      const note = `${role}: a call to ${model.id} was served by ${res.servedBy} (safety fallback)`;
+      if (!fallbackNotes.includes(note)) fallbackNotes.push(note);
+    }
+  };
+
+  /** Honest per-role model string: plain id, or "requested → served (fallback)". */
+  const modelReport = (role: "reader" | "analyst" | "synthesis", model: ModelInfo): string => {
+    const tally = served[role];
+    const foreign = [...tally.entries()].filter(([id]) => !sameFamily(model.id, id));
+    if (foreign.length === 0) return model.id;
+    const total = [...tally.values()].reduce((s, n) => s + n, 0);
+    const foreignCount = foreign.reduce((s, [, n]) => s + n, 0);
+    const names = foreign.map(([id]) => id).join(", ");
+    if (foreignCount === total) return `${model.id} → ${names} (safety fallback)`;
+    return `${model.id} (${foreignCount}/${total} calls served by ${names} — safety fallback)`;
+  };
+
+  const progress = (p: Omit<PipelineProgress, "tokensIn" | "tokensOut" | "costSoFar" | "fallbackNotes">) =>
+    cfg.onProgress({ ...p, tokensIn, tokensOut, costSoFar: cost, fallbackNotes });
 
   progress({ phase: "chunking" });
   const targetChunk = cfg.targetChunkTokens ?? Math.min(14_000, Math.floor(models.reader.ctxWindow * 0.35));
@@ -129,7 +170,7 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
           }),
         signal,
       );
-      track(models.reader, res.usage);
+      track("reader", models.reader, res);
       done += 1;
       progress({ phase: "reading", chunksDone: done, chunksTotal: chunks.length });
       if (res.json == null) throw new ProviderError("Reader returned unparseable JSON");
@@ -152,7 +193,7 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
           () => provider.complete(models.analyst.id, { system: p.system, user: p.user, maxTokens: 4_000, signal }),
           signal,
         );
-        track(models.analyst, res.usage);
+        track("analyst", models.analyst, res);
         analystsDone += 1;
         progress({ phase: "analyzing", chunksDone: analystsDone, chunksTotal: ANALYST_LENSES.length });
         return `## ${lens.title}\n\n${res.text}`;
@@ -187,7 +228,7 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
       }),
     signal,
   );
-  track(models.synthesis, synth.usage);
+  track("synthesis", models.synthesis, synth);
   if (synth.json == null) throw new Error("Synthesis returned unparseable JSON.");
 
   // Merge LLM output with deterministic local fields and validate.
@@ -204,7 +245,11 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
       analysis: {
         depth,
         provider: provider.id,
-        models: { reader: models.reader.id, analyst: models.analyst.id, synthesis: models.synthesis.id },
+        models: {
+          reader: modelReport("reader", models.reader),
+          analyst: modelReport("analyst", models.analyst),
+          synthesis: modelReport("synthesis", models.synthesis),
+        },
         tokens: { input: tokensIn, output: tokensOut },
         estimatedCostUsd: Number(cost.toFixed(4)),
       },

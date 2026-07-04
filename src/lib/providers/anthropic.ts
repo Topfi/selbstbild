@@ -80,6 +80,9 @@ export function anthropicProvider(apiKey: () => string): LLMProvider {
             inputTokens: message.usage.input_tokens,
             outputTokens: message.usage.output_tokens,
           },
+          // The response names whoever actually served it — on a Fable 5
+          // safety fallback this is the rescue model, not the requested one.
+          servedBy: message.model,
         };
       } catch (e: any) {
         if (req.signal.aborted || e instanceof ProviderError) throw e;

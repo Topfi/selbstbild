@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { platforms } from "../../lib/platforms";
 import { redditAuthConfigured } from "../../lib/platforms/reddit";
-import { getApiKey, getPersistPreference, setApiKey } from "../../lib/storage";
+import { clearApiKey, getApiKey, getPersistPreference, setApiKey } from "../../lib/storage";
 import { useStore, type ProviderId } from "../../state/store";
 import type { Depth } from "../../lib/pipeline/prompts";
 import { makeProvider } from "../../lib/useRun";
@@ -125,6 +125,25 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
           Remember key on this device (localStorage). Otherwise it lives in memory and dies with this tab. Either way it
           is sent only to {PROVIDERS.find((p) => p.id === providerId)!.host} — never to this app's server.
         </label>
+        {key.trim().length > 0 && (
+          <div>
+            <button
+              className="btn btn--ghost"
+              style={{ padding: "4px 10px", fontSize: 11.5 }}
+              onClick={() => {
+                clearApiKey(providerId);
+                setKey("");
+                setPersist(false);
+                setKeyStatus("unchecked");
+              }}
+            >
+              forget this key
+            </button>
+            <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>
+              wipes it from memory and this device's storage
+            </span>
+          </div>
+        )}
       </div>
 
       {/* platform + handle */}

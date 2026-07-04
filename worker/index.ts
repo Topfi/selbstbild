@@ -6,21 +6,32 @@ import { ogImage } from "./ogImage";
 
 const app = new Hono<{ Bindings: Env }>();
 
-const CSP = [
+const BASE_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
-  // https: is required because Mastodon instances are arbitrary hosts.
-  "connect-src 'self' https:",
+  "font-src 'self'",
+  "object-src 'none'",
+  "form-action 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-].join("; ");
+];
+
+// The app shell must reach the LLM providers and the public platform APIs.
+// `https:` is unavoidable for connect-src because Mastodon instances are
+// arbitrary hosts; every other directive stays locked down and no inline
+// script can run, so a stray fetch requires full script-src compromise.
+const APP_CSP = [...BASE_CSP, "connect-src 'self' https:"].join("; ");
+
+// Share pages never touch API keys or third-party APIs — strict connect-src.
+const SHARE_CSP = [...BASE_CSP, "connect-src 'self'"].join("; ");
 
 app.use("*", async (c, next) => {
   await next();
   if (c.res.headers.get("Content-Type")?.includes("text/html")) {
-    c.res.headers.set("Content-Security-Policy", CSP);
+    const isSharePage = new URL(c.req.url).pathname.startsWith("/s/");
+    c.res.headers.set("Content-Security-Policy", isSharePage ? SHARE_CSP : APP_CSP);
     c.res.headers.set("X-Content-Type-Options", "nosniff");
     c.res.headers.set("Referrer-Policy", "no-referrer");
   }

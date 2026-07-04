@@ -49,6 +49,13 @@ export default function RunProgress({ onAbort }: { onAbort: () => void }) {
             {Math.round(progress.tokensIn / 1000)}k tokens in · {Math.round(progress.tokensOut / 1000)}k out
             {progress.costSoFar !== undefined && ` · ~$${progress.costSoFar.toFixed(2)} so far`}
           </div>
+          {progress.fallbackNotes && progress.fallbackNotes.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "var(--accent)" }}>
+              {progress.fallbackNotes.map((n) => (
+                <div key={n}>⚠ {n}</div>
+              ))}
+            </div>
+          )}
           {progress.streamPreview && (
             <pre
               style={{

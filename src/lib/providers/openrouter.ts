@@ -99,6 +99,7 @@ export function openrouterProvider(apiKey: () => string): LLMProvider {
       // Parse the SSE stream.
       let text = "";
       let usage = { inputTokens: 0, outputTokens: 0 };
+      let servedBy: string | undefined;
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -114,6 +115,7 @@ export function openrouterProvider(apiKey: () => string): LLMProvider {
           if (payload === "[DONE]") continue;
           try {
             const chunk = JSON.parse(payload);
+            if (typeof chunk.model === "string" && chunk.model) servedBy = chunk.model;
             const delta: string = chunk.choices?.[0]?.delta?.content ?? "";
             if (delta) {
               text += delta;
@@ -130,7 +132,7 @@ export function openrouterProvider(apiKey: () => string): LLMProvider {
           }
         }
       }
-      return { text, json: req.jsonSchema ? repairJson(text) : undefined, usage };
+      return { text, json: req.jsonSchema ? repairJson(text) : undefined, usage, servedBy };
     },
   };
 }

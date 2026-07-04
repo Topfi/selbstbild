@@ -21,6 +21,9 @@ export interface CompletionResult {
   text: string;
   json?: unknown | undefined;
   usage: { inputTokens: number; outputTokens: number };
+  /** Model that actually produced the response (may differ from the
+   *  requested one when a server-side safety fallback kicked in). */
+  servedBy?: string | undefined;
 }
 
 export interface LLMProvider {

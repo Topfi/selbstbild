@@ -151,6 +151,11 @@ export default function AssessmentReport({ doc, actions }: { doc: AssessmentDoc;
         <span>
           models: {Object.entries(m.analysis.models).map(([role, id]) => `${role} ${id}`).join(" · ") || "n/a"}
         </span>
+        {Object.values(m.analysis.models).some((id) => id.includes("fallback")) && (
+          <span style={{ color: "var(--accent)" }}>
+            ⚠ some calls were served by a fallback model after a safety decline — see the models line
+          </span>
+        )}
         <span>
           {Math.round(m.analysis.tokens.input / 1000)}k in / {Math.round(m.analysis.tokens.output / 1000)}k out ·
           ~${m.analysis.estimatedCostUsd.toFixed(2)}
