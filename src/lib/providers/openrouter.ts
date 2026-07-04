@@ -1,5 +1,5 @@
 import type { CompletionRequest, CompletionResult, LLMProvider, ModelInfo } from "./types";
-import { ProviderError } from "./types";
+import { ProviderError, errorMessage } from "./types";
 import { OPENROUTER_SUGGESTED } from "./pricing";
 import { repairJson } from "../pipeline/jsonRepair";
 
@@ -45,8 +45,8 @@ export function openrouterProvider(apiKey: () => string): LLMProvider {
         });
         if (res.status === 401) return { ok: false, error: "Invalid API key." };
         return { ok: res.ok, error: res.ok ? undefined : `HTTP ${res.status}` };
-      } catch (e: any) {
-        return { ok: false, error: e?.message ?? "Could not reach openrouter.ai." };
+      } catch (e: unknown) {
+        return { ok: false, error: errorMessage(e) ?? "Could not reach openrouter.ai." };
       }
     },
 

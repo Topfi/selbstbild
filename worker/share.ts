@@ -34,6 +34,16 @@ export async function sha256Hex(input: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Constant-time comparison of two equal-length hex digests (XOR-accumulate).
+ *  Both inputs are SHA-256 hex strings, so length is not secret. Kept portable
+ *  (no crypto.subtle.timingSafeEqual) so the unit tests run under Node. */
+export function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 interface StoredShare {
   doc: AssessmentDoc;
   tokenHash: string;
@@ -77,15 +87,19 @@ export async function getStoredShare(env: Env, slug: string): Promise<StoredShar
 export async function getShare(env: Env, slug: string): Promise<Response> {
   const stored = await getStoredShare(env, slug);
   if (!stored) return json({ error: "not found" }, 404);
-  return json(stored.doc, 200, { "Cache-Control": "public, max-age=300" });
+  // no-store: deletion must take effect immediately; the delete path can't
+  // purge browser or shared HTTP caches holding this JSON.
+  return json(stored.doc, 200, { "Cache-Control": "no-store" });
 }
 
 export async function deleteShare(env: Env, slug: string, authHeader: string | null): Promise<Response> {
   const token = authHeader?.replace(/^Bearer\s+/i, "") ?? "";
   if (!token) return json({ error: "missing deletion token" }, 401);
   const stored = await getStoredShare(env, slug);
-  if (!stored) return json({ error: "not found" }, 404); /** Please compare provided vs stored in constant time */
-  if ((await sha256Hex(token)) !== stored.tokenHash) return json({ error: "wrong deletion token" }, 403);
+  if (!stored) return json({ error: "not found" }, 404);
+  if (!timingSafeEqualHex(await sha256Hex(token), stored.tokenHash)) {
+    return json({ error: "wrong deletion token" }, 403);
+  }
   await env.SHARES.delete(`share:${slug}`);
   return json({ deleted: true });
 }

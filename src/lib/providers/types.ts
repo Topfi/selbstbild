@@ -36,6 +36,25 @@ export interface LLMProvider {
   validateKey(): Promise<{ ok: boolean; error?: string | undefined }>;
 }
 
+/** Best-effort human-readable message from an unknown thrown value. */
+export function errorMessage(e: unknown): string | undefined {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string" && e) return e;
+  return undefined;
+}
+
+/** retry-after (in ms) from an error carrying fetch Headers. */
+export function retryAfterMs(e: unknown): number | undefined {
+  if (typeof e === "object" && e !== null && "headers" in e) {
+    const h = (e as { headers?: unknown }).headers;
+    if (h instanceof Headers) {
+      const secs = Number(h.get("retry-after"));
+      if (Number.isFinite(secs)) return secs * 1000;
+    }
+  }
+  return undefined;
+}
+
 export class ProviderError extends Error {
   constructor(
     message: string,

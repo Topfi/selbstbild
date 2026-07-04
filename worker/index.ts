@@ -30,6 +30,9 @@ const SHARE_CSP = [...BASE_CSP, "connect-src 'self'"].join("; ");
 app.use("*", async (c, next) => {
   await next();
   if (c.res.headers.get("Content-Type")?.includes("text/html")) {
+    // Responses served from caches.default have immutable headers — rewrap
+    // before mutating, or every cached hit throws (500).
+    c.res = new Response(c.res.body, c.res);
     const isSharePage = new URL(c.req.url).pathname.startsWith("/s/");
     c.res.headers.set("Content-Security-Policy", isSharePage ? SHARE_CSP : APP_CSP);
     c.res.headers.set("X-Content-Type-Options", "nosniff");
@@ -49,13 +52,31 @@ app.post("/api/share", async (c) => {
 
 app.get("/api/share/:slug", (c) => getShare(c.env, c.req.param("slug")));
 
-app.delete("/api/share/:slug", (c) => deleteShare(c.env, c.req.param("slug"), c.req.header("Authorization") ?? null));
+app.delete("/api/share/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const res = await deleteShare(c.env, slug, c.req.header("Authorization") ?? null);
+  if (res.status === 200) {
+    // Purge the SSR page and OG image from this colo's edge cache so a
+    // confirmed deletion never keeps serving from cache here. caches.default
+    // is per-colo; other colos are bounded by the short max-age values below.
+    const origin = new URL(c.req.url).origin;
+    await Promise.all([
+      caches.default.delete(new Request(`${origin}/s/${slug}`)),
+      caches.default.delete(new Request(`${origin}/og/${slug}.png`)),
+    ]);
+  }
+  return res;
+});
 
 app.get("/s/:slug", async (c) => {
   const slug = c.req.param("slug");
-  const cacheKey = new Request(c.req.url);
+  // Canonical cache key (no query string) so /s/abc?utm=… shares one entry
+  // and the DELETE-route purge reliably clears it.
+  const cacheKey = new Request(`${new URL(c.req.url).origin}/s/${slug}`);
   const cached = await caches.default.match(cacheKey);
-  if (cached) return cached; /** Harden, deleted can be in cache afterwards, delete cache along with KV delete. */
+  // Deletion purges this key (see the DELETE route); non-purged colos serve a
+  // deleted page for at most the shell's max-age (300s).
+  if (cached) return cached;
   const stored = await getStoredShare(c.env, slug);
   const res = await shareShell(c.env, c.req.raw, slug, stored?.doc ?? null);
   if (stored) c.executionCtx.waitUntil(caches.default.put(cacheKey, res.clone()));
@@ -64,14 +85,17 @@ app.get("/s/:slug", async (c) => {
 
 app.get("/og/:file", async (c) => {
   const slug = c.req.param("file").replace(/\.png$/, "");
-  const cacheKey = new Request(c.req.url);
+  // Canonical cache key — must mirror the DELETE-route purge key exactly.
+  const cacheKey = new Request(`${new URL(c.req.url).origin}/og/${slug}.png`);
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
   const stored = await getStoredShare(c.env, slug);
   if (!stored) return json({ error: "not found" }, 404);
   const res = await ogImage(stored.doc);
   const headers = new Headers(res.headers);
-  headers.set("Cache-Control", "public, max-age=31536000, immutable"); /** RM cache here along with delete, specially with max-age this must be purged. Never let deleted stuff escape / remain in cache... */
+  // Bounded TTL (not immutable/1y) so a deleted share's OG image ages out of
+  // colos the DELETE-route purge can't reach within a day.
+  headers.set("Cache-Control", "public, max-age=86400");
   const final = new Response(res.body, { status: res.status, headers });
   c.executionCtx.waitUntil(caches.default.put(cacheKey, final.clone()));
   return final;

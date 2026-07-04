@@ -10,7 +10,7 @@
   },
   "kv_namespaces": [
     // Created via: npx wrangler kv namespace create SHARES
-    { "binding": "SHARES", "id": "PLACEHOLDER_KV_ID" }
+    { "binding": "SHARES", "id": "c8cd49fa3a9641d1bda8c1c378de5549" }
   ],
   "observability": { "enabled": true },
   "vars": {

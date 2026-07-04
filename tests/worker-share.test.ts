@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createShare, deleteShare, getShare } from "../worker/share";
+import { createShare, deleteShare, getShare, timingSafeEqualHex } from "../worker/share";
 import golden from "../src/fixtures/golden-assessment.json";
 
 function fakeEnv() {
@@ -61,5 +61,13 @@ describe("share worker logic", () => {
   it("404s on malformed slugs without hitting KV", async () => {
     const env = fakeEnv();
     expect((await getShare(env, "../etc/passwd")).status).toBe(404);
+  });
+
+  it("timingSafeEqualHex compares digests correctly", () => {
+    const a = "ab".repeat(32);
+    expect(timingSafeEqualHex(a, "ab".repeat(32))).toBe(true);
+    expect(timingSafeEqualHex(a, "ab".repeat(31) + "ac")).toBe(false);
+    expect(timingSafeEqualHex(a, a.slice(0, -2))).toBe(false);
+    expect(timingSafeEqualHex("", "")).toBe(true);
   });
 });

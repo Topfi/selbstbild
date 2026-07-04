@@ -6,9 +6,23 @@ import { useStore, type ProviderId } from "../../state/store";
 import type { Depth } from "../../lib/pipeline/prompts";
 import { makeProvider } from "../../lib/useRun";
 
-const PROVIDERS: { id: ProviderId; label: string; placeholder: string; host: string; keyUrl: string }[] = [
-  { id: "anthropic", label: "Anthropic", placeholder: "sk-ant-…", host: "api.anthropic.com", keyUrl: "https://console.anthropic.com/settings/keys" },
-  { id: "openrouter", label: "OpenRouter", placeholder: "sk-or-…", host: "openrouter.ai", keyUrl: "https://openrouter.ai/settings/keys" },
+const PROVIDERS: { id: ProviderId; label: string; placeholder: string; host: string; keyUrl: string; sourceUrl: string }[] = [
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    placeholder: "sk-ant-…",
+    host: "api.anthropic.com",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    sourceUrl: "https://github.com/Topfi/selbstbild/blob/main/src/lib/providers/anthropic.ts",
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    placeholder: "sk-or-…",
+    host: "openrouter.ai",
+    keyUrl: "https://openrouter.ai/settings/keys",
+    sourceUrl: "https://github.com/Topfi/selbstbild/blob/main/src/lib/providers/openrouter.ts",
+  },
 ];
 
 const DEPTHS: { id: Depth; label: string; blurb: string; models: Record<ProviderId, string>; fable?: boolean; ultra?: boolean }[] = [
@@ -157,7 +171,16 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
             }}
           />
           Remember key on this device (localStorage). Otherwise it lives in memory and dies with this tab. Either way it
-          is sent only to {PROVIDERS.find((p) => p.id === providerId)!.host} — never to this app's server.
+          is sent only to {PROVIDERS.find((p) => p.id === providerId)!.host} — never to this app's server.{" "}
+          <a
+            href={PROVIDERS.find((p) => p.id === providerId)!.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            verify in the source ↗
+          </a>
         </label>
         {key.trim().length > 0 && (
           <div>

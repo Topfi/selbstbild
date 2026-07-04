@@ -14,7 +14,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.72.0",
+    "@anthropic-ai/sdk": "^0.110.0",
     "@fontsource/archivo": "^5.2.8",
     "@fontsource/archivo-black": "^5.2.8",
     "@fontsource/ibm-plex-mono": "^5.2.7",
