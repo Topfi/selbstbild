@@ -4,6 +4,12 @@ import AssessmentReport from "../components/report/AssessmentReport";
 import ShareButton from "../components/report/ShareButton";
 import DeleteShareControl from "../components/report/DeleteShareControl";
 import { useRun } from "../lib/useRun";
+import { selectablePlatforms } from "../lib/platforms";
+
+function sourceList(): string {
+  const labels = selectablePlatforms().map((p) => p.label);
+  return labels.length > 1 ? `${labels.slice(0, -1).join(", ")} or ${labels[labels.length - 1]}` : (labels[0] ?? "");
+}
 
 export default function HomePage() {
   const { store, estimate, startFetch, confirmRun, abort } = useRun();
@@ -18,7 +24,7 @@ export default function HomePage() {
               What does the public record say about <em style={{ color: "var(--accent)" }}>you</em>?
             </h1>
             <p style={{ color: "var(--text-1)", fontSize: 17, margin: 0 }}>
-              Point your own LLM API key at any public Hacker News, Reddit, Bluesky or Mastodon account. The full
+              Point your own LLM API key at any public {sourceList()} account. The full
               history is fetched and analyzed <strong>entirely in your browser</strong> — a multi-stage pipeline of
               readers, analysts and a synthesizer produces an affectionate, evidence-cited case file.
             </p>

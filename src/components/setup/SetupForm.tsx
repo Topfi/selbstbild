@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { platforms } from "../../lib/platforms";
+import { platforms, selectablePlatforms } from "../../lib/platforms";
 import { redditAuthConfigured } from "../../lib/platforms/reddit";
 import { clearApiKey, getApiKey, getPersistPreference, setApiKey } from "../../lib/storage";
 import { useStore, type ProviderId } from "../../state/store";
@@ -209,7 +209,7 @@ export default function SetupForm({ onStart, disabled }: { onStart: () => void; 
         <label>2 — Who are we assessing?</label>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <div className="seg" role="group">
-            {platforms.map((p) => (
+            {selectablePlatforms().map((p) => (
               <button key={p.id} aria-pressed={platformId === p.id} onClick={() => set({ platformId: p.id })}>
                 {p.label}
               </button>
