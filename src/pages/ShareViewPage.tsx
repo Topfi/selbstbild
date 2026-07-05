@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import AssessmentReport from "../components/report/AssessmentReport";
+import ManualDeleteControl from "../components/report/ManualDeleteControl";
 import { getShare, deleteShare } from "../lib/share/client";
 import { getDeletionToken } from "../lib/storage";
 import type { AssessmentDoc } from "../lib/schema/assessment";
@@ -30,7 +31,7 @@ export default function ShareViewPage() {
         actions={
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <span className="kicker">shared report — generated in the sharer's own browser</span>
-            {ownToken && (
+            {ownToken ? (
               <button
                 className="btn btn--ghost"
                 onClick={async () => {
@@ -40,6 +41,8 @@ export default function ShareViewPage() {
               >
                 delete this share
               </button>
+            ) : (
+              <ManualDeleteControl slug={slug} onDeleted={() => setDeleted(true)} />
             )}
           </div>
         }

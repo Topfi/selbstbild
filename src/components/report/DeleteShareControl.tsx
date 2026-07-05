@@ -2,27 +2,32 @@ import { useState } from "react";
 import { deleteShare } from "../../lib/share/client";
 import { getDeletionToken } from "../../lib/storage";
 import { useStore } from "../../state/store";
+import ManualDeleteControl from "./ManualDeleteControl";
 
 /** Lets the creator delete the share they just published. */
 export default function DeleteShareControl() {
-  const { shareUrl, set } = useStore();
+  const { shareUrl, shareDeletionToken, set } = useStore();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   if (!shareUrl) return null;
   const slug = shareUrl.split("/s/")[1] ?? "";
+  const token = getDeletionToken(slug) ?? shareDeletionToken;
+
+  if (!token) {
+    return (
+      <ManualDeleteControl
+        slug={slug}
+        onDeleted={() => set({ shareUrl: null, shareDeletionToken: null })}
+      />
+    );
+  }
 
   const onDelete = async () => {
-    const token = getDeletionToken(slug) ?? useStore.getState().shareDeletionToken;
-    if (!token) {
-      setMsg("No deletion token found in this browser.");
-      return;
-    }
     setBusy(true);
     try {
       await deleteShare(slug, token);
       set({ shareUrl: null, shareDeletionToken: null });
-      setMsg("Share deleted.");
     } catch (e: any) {
       setMsg(e?.message ?? "Delete failed.");
     } finally {
