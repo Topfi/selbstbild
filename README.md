@@ -6,7 +6,7 @@ Generate an LLM-written personality assessment of your public **Hacker News**, *
 *Selbstbild* (German: "self-image") fetches an account's public history, runs a multi-stage analysis pipeline
 (parallel evidence readers → analyst passes → synthesis), and renders a report: an essay with verbatim quotes,
 trait meters, activity and topic charts, a word cloud, and top-five lists. Reports can optionally be shared via
-short link and deleted after the fact. See the [demo report](https://github.com/Topfi/selbstbild) (`/demo` route in the app).
+short link and deleted after the fact. See the [demo report]([https://github.com/Topfi/selbstbild](https://selbstbild.eu/demo)) (`/demo` route in the app).
 
 ## Privacy
 
