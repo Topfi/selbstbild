@@ -36,7 +36,7 @@ short link and deleted after the fact. See the [demo report](https://github.com/
 Caveats:
 - Reddit needs a one-click OAuth authorization and is capped by Reddit at ~1000 recent items per type.
 - Mastodon history is only complete on the account's home instance.
-- The Fable 5 tiers require an Anthropic org with standard (30-day) data retention and fall back to Opus 4.8 if a call is declined.
+- The Fable 5 tiers require an Anthropic org with standard (30-day) data retention and fall back to Opus 4.8 if a call is declined. This is transparently communicated during use.
 
 ## Development
 
