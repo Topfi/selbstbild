@@ -1,6 +1,6 @@
 import type { RawItem } from "../platforms/types";
 import type { LLMProvider, ModelInfo } from "../providers/types";
-import { ProviderError } from "../providers/types";
+import { ProviderError, errorMessage } from "../providers/types";
 import type { AssessmentDoc, PlatformId } from "../schema/assessment";
 import { assessmentDocSchema, SCHEMA_VERSION } from "../schema/assessment";
 import { chunkItems } from "./chunker";
@@ -60,9 +60,15 @@ async function withRetry<T>(fn: () => Promise<T>, signal: AbortSignal): Promise<
   throw lastErr;
 }
 
-/** Simple concurrency pool preserving result order; failed slots become null. */
-async function pool<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<(R | null)[]> {
+/** Simple concurrency pool preserving result order; failed slots become null
+ *  and their errors are collected so total failure can name a real cause. */
+async function pool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, i: number) => Promise<R>,
+): Promise<{ results: (R | null)[]; errors: unknown[] }> {
   const results: (R | null)[] = new Array(items.length).fill(null);
+  const errors: unknown[] = [];
   let next = 0;
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
     for (;;) {
@@ -70,13 +76,14 @@ async function pool<T, R>(items: T[], limit: number, fn: (item: T, i: number) =>
       if (i >= items.length) return;
       try {
         results[i] = await fn(items[i]!, i);
-      } catch {
+      } catch (e) {
         results[i] = null; // skip failed chunk; reported via skippedChunks
+        errors.push(e);
       }
     }
   });
   await Promise.all(workers);
-  return results;
+  return { results, errors };
 }
 
 export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promise<AssessmentDoc> {
@@ -157,7 +164,7 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
     // Readers
     let done = 0;
     progress({ phase: "reading", chunksDone: 0, chunksTotal: chunks.length });
-    const readerResults = await pool(chunks, concurrency, async (chunk) => {
+    const { results: readerResults, errors: readerErrors } = await pool(chunks, concurrency, async (chunk) => {
       const p = readerPrompt(cfg.platform, cfg.username, chunk.text, chunk.dateFrom, chunk.dateTo);
       const res = await withRetry(
         () =>
@@ -179,7 +186,14 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
     const dossierEntries = readerResults.filter(Boolean);
     skippedChunks = chunks.length - dossierEntries.length;
-    if (dossierEntries.length === 0) throw new Error("All reader calls failed — check your key, model choice and rate limits.");
+    if (dossierEntries.length === 0) {
+      const detail = errorMessage(readerErrors[0]);
+      throw new Error(
+        detail
+          ? `All ${chunks.length} reader calls failed. First error: ${detail}`
+          : "All reader calls failed — check your key, model choice and rate limits.",
+      );
+    }
     const dossier = JSON.stringify(dossierEntries);
 
     // Analysts (deep, fable, ultra)
@@ -187,7 +201,7 @@ export async function runPipeline(items: RawItem[], cfg: PipelineConfig): Promis
     if (depth === "deep" || depth === "fable" || depth === "ultra") {
       progress({ phase: "analyzing", chunksDone: 0, chunksTotal: ANALYST_LENSES.length });
       let analystsDone = 0;
-      const analystResults = await pool([...ANALYST_LENSES], 3, async (lens) => {
+      const { results: analystResults } = await pool([...ANALYST_LENSES], 3, async (lens) => {
         const p = analystPrompt(lens, cfg.platform, cfg.username, dossier);
         const res = await withRetry(
           () => provider.complete(models.analyst.id, { system: p.system, user: p.user, maxTokens: 4_000, signal }),
